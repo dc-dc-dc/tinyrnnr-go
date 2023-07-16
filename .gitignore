@@ -1,2 +1,3 @@
 net.*[json,safetensors]
 extra/opencl
+venv/
