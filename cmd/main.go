@@ -50,7 +50,7 @@ func main() {
 		bufB := efficientnetgo.CreateBuffer(ctx, cmd_queue, b, false)
 		bufC := efficientnetgo.CreateBuffer(ctx, cmd_queue, c, true)
 
-		efficientnetgo.RunKernel(cmd_queue, kernel, []int64{int64(count)}, []int64{1}, []efficientnetgo.MemObject{bufC, bufB, bufA})
+		efficientnetgo.RunKernel(cmd_queue, kernel, []int64{int64(count)}, []int64{1}, []efficientnetgo.CLMemObject{bufC, bufB, bufA})
 		efficientnetgo.ReadBuffer(cmd_queue, bufC, c)
 		fmt.Printf("result: %v\n", c)
 	}
