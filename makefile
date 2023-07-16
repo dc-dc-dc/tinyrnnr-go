@@ -1,7 +1,7 @@
 .PHONY: run opencl
 
-run:
-	go run ./cmd/main.go
+run-add:
+	go run ./cmd/add/main.go
 
 opencl:
 	clang -framework OpenCL extra/opencl.c -o extra/opencl && ./extra/opencl
