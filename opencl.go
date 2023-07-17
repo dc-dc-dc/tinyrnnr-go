@@ -9,7 +9,10 @@ package efficientnetgo
 #endif
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // status codes
 const CL_SUCCESS = 0
@@ -110,38 +113,37 @@ func getBufferType(write bool) C.ulonglong {
 	return CL_MEM_READ_ONLY
 }
 
-func CreateBuffer(ctx CLContext, queue CLCommandQueue, buf []float32, write bool) CLMemObject {
+func CreateBuffer(ctx CLContext, queue CLCommandQueue, size uint64, write bool) CLMemObject {
 	var err CLint
-	size := C.size_t(len(buf) * 4)
-
-	buffer := C.clCreateBuffer(ctx, getBufferType(write), size, nil, &err)
+	buffer := C.clCreateBuffer(ctx, getBufferType(write), C.size_t(size), nil, &err)
 
 	if err != CL_SUCCESS {
 		return nil
 	}
-	if !write {
-		if C.clEnqueueWriteBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil) != CL_SUCCESS {
-			return nil
-		}
-	}
 	return buffer
 }
 
+func WriteBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) {
+	size := C.size_t(len(buf) * 4)
+	if status := C.clEnqueueWriteBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil); status != CL_SUCCESS {
+		panic(fmt.Errorf("FAILED TO WRITE %d", status))
+	}
+}
 func ReadBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) {
 	size := C.size_t(len(buf) * 4)
 	if C.clEnqueueReadBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil) != CL_SUCCESS {
-		return
+		panic("FAILED TO READ")
 	}
 }
 
-func RunKernel(queue CLCommandQueue, kernel CLKernel, global_size, local_size []int64, bufs []CLMemObject) {
+func RunKernel(queue CLCommandQueue, kernel CLKernel, global_size, local_size []uint64, bufs []CLMemObject) string {
 	for i, buf := range bufs {
 		if C.clSetKernelArg(kernel, C.cl_uint(i), C.size_t(unsafe.Sizeof(buf)), unsafe.Pointer(&buf)) != CL_SUCCESS {
-			return
+			return "error"
 		}
 	}
 	if C.clEnqueueNDRangeKernel(queue, kernel, C.cl_uint(len(global_size)), nil, (*C.size_t)(unsafe.Pointer(&global_size[0])), (*C.size_t)(unsafe.Pointer(&local_size[0])), 0, nil, nil) != CL_SUCCESS {
-		return
+		return "error enqueeing kernel"
 	}
-	return
+	return ""
 }

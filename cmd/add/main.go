@@ -51,11 +51,14 @@ func main() {
 		b[i] = float32(i)
 		c[i] = 0
 	}
-	bufA := efficientnetgo.CreateBuffer(ctx, cmd_queue, a, false)
-	bufB := efficientnetgo.CreateBuffer(ctx, cmd_queue, b, false)
-	bufC := efficientnetgo.CreateBuffer(ctx, cmd_queue, c, true)
+	bufA := efficientnetgo.CreateBuffer(ctx, cmd_queue, uint64(len(a)*4), false)
+	bufB := efficientnetgo.CreateBuffer(ctx, cmd_queue, uint64(len(b)*4), false)
+	bufC := efficientnetgo.CreateBuffer(ctx, cmd_queue, uint64(len(c)*4), true)
 
-	efficientnetgo.RunKernel(cmd_queue, kernel, []int64{int64(count)}, []int64{1}, []efficientnetgo.CLMemObject{bufC, bufB, bufA})
+	efficientnetgo.WriteBuffer(cmd_queue, bufA, a)
+	efficientnetgo.WriteBuffer(cmd_queue, bufB, b)
+
+	efficientnetgo.RunKernel(cmd_queue, kernel, []uint64{uint64(count)}, []uint64{1}, []efficientnetgo.CLMemObject{bufC, bufB, bufA})
 	efficientnetgo.ReadBuffer(cmd_queue, bufC, c)
 	fmt.Printf("result: %v\n", c)
 }
