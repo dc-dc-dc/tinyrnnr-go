@@ -33,6 +33,110 @@ type CLContext = C.cl_context
 type CLPlatformID = C.cl_platform_id
 type CLDeviceID = C.cl_device_id
 
+type OpenCLBackend struct {
+	ctx    CLContext
+	queue  CLCommandQueue
+	device CLDeviceID
+}
+
+type OpenCLBuffer struct {
+	buf CLMemObject
+}
+
+type OpenCLKernel struct {
+	kernel CLKernel
+}
+
+func NewOpenCLBackend() Backend {
+	return &OpenCLBackend{}
+}
+
+func NewOpenCLBuffer(buf CLMemObject) Buffer {
+	return &OpenCLBuffer{
+		buf: buf,
+	}
+}
+
+func NewOpenCLKernel(kernel CLKernel) Kernel {
+	return &OpenCLKernel{
+		kernel: kernel,
+	}
+}
+
+func (bc *OpenCLBackend) Setup() error {
+	platforms := GetPlatformIDs()
+	if len(platforms) == 0 {
+		return fmt.Errorf("no platforms")
+	}
+	platform := platforms[0]
+	devices := GetDeviceIDs(platform)
+	if len(devices) == 0 {
+		return fmt.Errorf("no devices")
+	}
+	bc.device = devices[0]
+	bc.ctx = CreateContext(bc.device)
+	if bc.ctx == nil {
+		return fmt.Errorf("no context")
+	}
+	bc.queue = CreateCommandQueue(bc.ctx, bc.device)
+	if bc.queue == nil {
+		return fmt.Errorf("no queue")
+	}
+
+	return nil
+}
+
+func (bc *OpenCLBackend) CreateKernel(name, src string) (Kernel, error) {
+	prg := CreateProgram(bc.ctx, bc.device, src)
+	if prg == nil {
+		return nil, fmt.Errorf("error creating kernel")
+	}
+	kernel := CreateKernel(prg, name)
+	if kernel == nil {
+		return nil, fmt.Errorf("error creating kernel")
+	}
+	return NewOpenCLKernel(kernel), nil
+}
+
+func (bc *OpenCLBackend) CreateBuffer(size uint64, writable bool) (Buffer, error) {
+	buf := CreateBuffer(bc.ctx, bc.queue, size, writable)
+	if buf == nil {
+		return nil, fmt.Errorf("failed to create buffer")
+	}
+	return NewOpenCLBuffer(buf), nil
+}
+
+func (bc *OpenCLBackend) ReadBuffer(buf Buffer, out []float32) error {
+	clBuf, ok := buf.(*OpenCLBuffer)
+	if !ok {
+		return fmt.Errorf("not an opencl buffer")
+	}
+	return ReadBuffer(bc.queue, clBuf.buf, out)
+}
+func (bc *OpenCLBackend) WriteBuffer(buf Buffer, in []float32) error {
+	clBuf, ok := buf.(*OpenCLBuffer)
+	if !ok {
+		return fmt.Errorf("not an opencl buffer")
+	}
+	return WriteBuffer(bc.queue, clBuf.buf, in)
+}
+
+func (bc *OpenCLBackend) RunKernel(kernel Kernel, global, local []uint64, bufs []Buffer) error {
+	clKernel, ok := kernel.(*OpenCLKernel)
+	if !ok {
+		return fmt.Errorf("not an opencl kernel")
+	}
+	clbufs := make([]OpenCLBuffer, len(bufs))
+	for i, buf := range bufs {
+		clBuf, ok := buf.(*OpenCLBuffer)
+		if !ok {
+			return fmt.Errorf("buf at %d not an opencl buffer", i)
+		}
+		clbufs[i] = *clBuf
+	}
+	return RunKernel(bc.queue, clKernel.kernel, global, local, clbufs)
+}
+
 func GetPlatformIDs() []CLPlatformID {
 	numPlatforms := C.cl_uint(0)
 	if C.clGetPlatformIDs(0, nil, &numPlatforms) != CL_SUCCESS {
@@ -123,27 +227,30 @@ func CreateBuffer(ctx CLContext, queue CLCommandQueue, size uint64, write bool) 
 	return buffer
 }
 
-func WriteBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) {
+func WriteBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) error {
 	size := C.size_t(len(buf) * 4)
 	if status := C.clEnqueueWriteBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil); status != CL_SUCCESS {
-		panic(fmt.Errorf("FAILED TO WRITE %d", status))
+		return fmt.Errorf("failed to write to buffer got status: %d", status)
 	}
-}
-func ReadBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) {
-	size := C.size_t(len(buf) * 4)
-	if C.clEnqueueReadBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil) != CL_SUCCESS {
-		panic("FAILED TO READ")
-	}
+	return nil
 }
 
-func RunKernel(queue CLCommandQueue, kernel CLKernel, global_size, local_size []uint64, bufs []CLMemObject) string {
+func ReadBuffer(queue CLCommandQueue, buffer CLMemObject, buf []float32) error {
+	size := C.size_t(len(buf) * 4)
+	if status := C.clEnqueueReadBuffer(queue, buffer, CL_TRUE, 0, size, unsafe.Pointer(&buf[0]), 0, nil, nil); status != CL_SUCCESS {
+		return fmt.Errorf("failed to read buffer got status: %d", status)
+	}
+	return nil
+}
+
+func RunKernel(queue CLCommandQueue, kernel CLKernel, global_size, local_size []uint64, bufs []OpenCLBuffer) error {
 	for i, buf := range bufs {
-		if C.clSetKernelArg(kernel, C.cl_uint(i), C.size_t(unsafe.Sizeof(buf)), unsafe.Pointer(&buf)) != CL_SUCCESS {
-			return "error"
+		if status := C.clSetKernelArg(kernel, C.cl_uint(i), C.size_t(unsafe.Sizeof(buf.buf)), unsafe.Pointer(&buf.buf)); status != CL_SUCCESS {
+			return fmt.Errorf("error setting kernel arg %d got status: %d", i, status)
 		}
 	}
-	if C.clEnqueueNDRangeKernel(queue, kernel, C.cl_uint(len(global_size)), nil, (*C.size_t)(unsafe.Pointer(&global_size[0])), (*C.size_t)(unsafe.Pointer(&local_size[0])), 0, nil, nil) != CL_SUCCESS {
-		return "error enqueeing kernel"
+	if status := C.clEnqueueNDRangeKernel(queue, kernel, C.cl_uint(len(global_size)), nil, (*C.size_t)(unsafe.Pointer(&global_size[0])), (*C.size_t)(unsafe.Pointer(&local_size[0])), 0, nil, nil); status != CL_SUCCESS {
+		return fmt.Errorf("error enqueeing kernel got status: %d", status)
 	}
-	return ""
+	return nil
 }

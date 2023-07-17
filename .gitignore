@@ -1,3 +1,5 @@
 net.*[json,safetensors]
 extra/opencl
 venv/
+imagenet-simple-labels.json
+Norwegian_hen.jpg
