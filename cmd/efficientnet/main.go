@@ -20,6 +20,24 @@ func convertToFloatArray(arr []uint8) []float32 {
 	return res
 }
 
+func prepareImage(size uint64, src image.Image) []float32 {
+	rgba := image.NewRGBA(image.Rect(0, 0, 224, 224))
+	draw.NearestNeighbor.Scale(rgba, rgba.Bounds(), src, src.Bounds(), draw.Over, nil)
+	input := make([]float32, size)
+	temp := convertToFloatArray(rgba.Pix)
+	for i := range temp {
+		temp[i] = (temp[i]/255.0)*.45 - .225
+	}
+	i := 0
+	for c := 0; c < 3; c++ {
+		for x := 0; x < 224*224; x++ {
+			input[i] = temp[x*4+c]
+			i += 1
+		}
+	}
+	return input
+}
+
 func main() {
 	labels := []string{}
 	fd, err := os.Open("imagenet-simple-labels.json")
@@ -31,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	model, err := efficientnetgo.NewModelFromFile("net.json")
+	model, err := efficientnetgo.NewModelFromFile("net-opencl.json")
 	if err != nil {
 		panic(err)
 	}
@@ -54,26 +72,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	rgba := image.NewRGBA(image.Rect(0, 0, 224, 224))
-	draw.NearestNeighbor.Scale(rgba, rgba.Bounds(), src, src.Bounds(), draw.Over, nil)
-	// fmt.Printf("image size: %v\n", rgba.Pix[:10])
 
-	input := make([]float32, model.GetInputSize())
-	temp := convertToFloatArray(rgba.Pix)
-	for i := range temp {
-		temp[i] = (temp[i]/255.0)*.45 - .225
-	}
-	i := 0
-	for c := 0; c < 3; c++ {
-		for x := 0; x < 224*224; x++ {
-			input[i] = temp[x*4+c]
-			i += 1
-		}
-	}
-	// fmt.Printf("input: %v\n", input[:10])
-	// Create the kernels
-
-	// Run the kerenels in order
+	input := prepareImage(model.GetInputSize(), src)
 	out, err := model.Run(input)
 	if err != nil {
 		panic(err)

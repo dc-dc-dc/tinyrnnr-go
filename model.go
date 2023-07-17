@@ -55,6 +55,9 @@ func NewModelFromFile(path string) (*Model, error) {
 	if err := json.NewDecoder(fd).Decode(metadata); err != nil {
 		return nil, err
 	}
+	if metadata.Backend != "GPU" {
+		return nil, fmt.Errorf("unsupported backend %s", metadata.Backend)
+	}
 	return NewModel(metadata), nil
 }
 
