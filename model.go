@@ -14,14 +14,15 @@ type Statement struct {
 }
 
 type BufferMetadata struct {
-	Size uint64 `json:"size"`
-	Name string `json:"id"`
+	Size  uint64 `json:"size"`
+	Dtype string `json:"dtype"`
+	Name  string `json:"id"`
 }
 
 type ModelMetadata struct {
 	Backend    string                    `json:"backend"`
-	InputSize  uint64                    `json:"input_size"`
-	OutputSize uint64                    `json:"output_size"`
+	InputSize  BufferMetadata            `json:"input_size"`
+	OutputSize BufferMetadata            `json:"output_size"`
 	Functions  map[string]string         `json:"functions"`
 	Statements []Statement               `json:"statements"`
 	Buffers    map[string]BufferMetadata `json:"buffers"`
@@ -46,7 +47,7 @@ type Model struct {
 }
 
 func NewModelFromFile(path string) (*Model, error) {
-	fd, err := os.Open("net.json")
+	fd, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +88,12 @@ func (m *Model) Setup(tensor *SafeTensor) error {
 		}
 		m.buffers[key] = temp
 	}
-	input, err := m.backend.CreateBuffer(m.metadata.InputSize*4, false)
+	input, err := m.backend.CreateBuffer(m.metadata.InputSize.Size*4, false)
 	if err != nil {
 		return fmt.Errorf("error creating input buffer: %v", err)
 	}
 	m.buffers["input"] = input
-	output, err := m.backend.CreateBuffer(m.metadata.OutputSize*4, true)
+	output, err := m.backend.CreateBuffer(m.metadata.OutputSize.Size*4, true)
 	if err != nil {
 		return fmt.Errorf("error creating output buffer: %v", err)
 	}
@@ -109,7 +110,7 @@ func (m *Model) Setup(tensor *SafeTensor) error {
 }
 
 func (m *Model) GetInputSize() uint64 {
-	return m.metadata.InputSize
+	return m.metadata.InputSize.Size
 }
 
 func (m *Model) Run(input []float32) ([]float32, error) {
@@ -132,7 +133,7 @@ func (m *Model) Run(input []float32) ([]float32, error) {
 			return nil, res
 		}
 	}
-	out := make([]float32, m.metadata.OutputSize)
+	out := make([]float32, m.metadata.OutputSize.Size)
 	if err := m.backend.ReadBuffer(m.buffers["outputs"], out); err != nil {
 		return nil, err
 	}
