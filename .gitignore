@@ -1,4 +1,4 @@
-net.*[json,safetensors]
+net*
 extra/opencl
 venv/
 imagenet-simple-labels.json
