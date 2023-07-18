@@ -1,4 +1,4 @@
-package efficientnetgo
+package tinyrnnrgo
 
 import (
 	"encoding/json"

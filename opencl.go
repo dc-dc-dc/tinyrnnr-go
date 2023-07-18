@@ -1,4 +1,4 @@
-package efficientnetgo
+package tinyrnnrgo
 
 /*
 #cgo darwin LDFLAGS: -framework OpenCL

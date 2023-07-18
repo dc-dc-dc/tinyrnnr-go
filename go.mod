@@ -1,4 +1,4 @@
-module github.com/dc-dc-dc/efficientnet-go
+module github.com/dc-dc-dc/tinyrnnr-go
 
 go 1.20
 

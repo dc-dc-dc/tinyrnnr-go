@@ -3,22 +3,22 @@ package main
 import (
 	"fmt"
 
-	efficientnetgo "github.com/dc-dc-dc/efficientnet-go"
+	tinyrnnrgo "github.com/dc-dc-dc/tinyrnnr-go"
 )
 
 func main() {
-	mtl := efficientnetgo.MetalCreateDefaultDevice()
-	queue := efficientnetgo.MetalCommandQueue(mtl)
+	mtl := tinyrnnrgo.MetalCreateDefaultDevice()
+	queue := tinyrnnrgo.MetalCommandQueue(mtl)
 	size := 1024
 	a := make([]float32, size)
 	for i := range a {
 		a[i] = float32(i)
 	}
-	bufa := efficientnetgo.MetalBuffer(mtl, uint64(len(a)*4))
+	bufa := tinyrnnrgo.MetalBuffer(mtl, uint64(len(a)*4))
 	b := make([]float32, size)
-	efficientnetgo.MetalWriteBuffer(bufa, a)
+	tinyrnnrgo.MetalWriteBuffer(bufa, a)
 	fmt.Printf("mtl: %v %v\n", queue, bufa)
-	efficientnetgo.MetalReadBuffer(bufa, b)
-	kernel := efficientnetgo.MetalLibrary(mtl, `#include <metal_stdlib>\nusing namespace metal;\nkernel void add(device float* a, device float* b, device float* c, uint i [[thread_position_in_grid]]) { c[i] = a[i] + b[i]; }`)
+	tinyrnnrgo.MetalReadBuffer(bufa, b)
+	kernel := tinyrnnrgo.MetalLibrary(mtl, `#include <metal_stdlib>\nusing namespace metal;\nkernel void add(device float* a, device float* b, device float* c, uint i [[thread_position_in_grid]]) { c[i] = a[i] + b[i]; }`)
 	fmt.Printf("kernel: %v\n", kernel)
 }

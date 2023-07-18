@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	efficientnetgo "github.com/dc-dc-dc/efficientnet-go"
+	tinyrnnrgo "github.com/dc-dc-dc/tinyrnnr-go"
 )
 
 func main() {
-	safetensor, err := efficientnetgo.NewSafeTensorFromFile("./net.safetensors")
+	safetensor, err := tinyrnnrgo.NewSafeTensorFromFile("./net.safetensors")
 	if err != nil {
 		panic(err)
 	}

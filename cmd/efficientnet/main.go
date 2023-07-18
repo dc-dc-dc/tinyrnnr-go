@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/image/draw"
 
-	efficientnetgo "github.com/dc-dc-dc/efficientnet-go"
+	tinyrnnrgo "github.com/dc-dc-dc/tinyrnnr-go"
 )
 
 func convertToFloatArray(arr []uint8) []float32 {
@@ -49,11 +49,11 @@ func main() {
 		panic(err)
 	}
 
-	model, err := efficientnetgo.NewModelFromFile("net-opencl.json")
+	model, err := tinyrnnrgo.NewModelFromFile("net-opencl.json")
 	if err != nil {
 		panic(err)
 	}
-	tensor, err := efficientnetgo.NewSafeTensorFromFile("net.safetensors")
+	tensor, err := tinyrnnrgo.NewSafeTensorFromFile("net.safetensors")
 	if err != nil {
 		panic(err)
 	}
