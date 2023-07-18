@@ -2,6 +2,8 @@ package tinyrnnrgo
 
 /*
 #cgo darwin LDFLAGS: -framework OpenCL
+#cgo windows CFLAGS: -I"C://cuda//include"
+#cgo windows LDFLAGS: -L"C://cuda//lib/x64" -lOpenCL
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/opencl.h>
 #else

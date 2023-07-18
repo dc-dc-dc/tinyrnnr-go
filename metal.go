@@ -1,8 +1,11 @@
+//go:build darwin
+// +build darwin
+
 package tinyrnnrgo
 
 /*
-#cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Metal -framework Foundation
+#cgo darwin CFLAGS: -x objective-c
+#cgo darwin LDFLAGS: -framework Metal -framework Foundation
 #import <Metal/Metal.h>
 
 void * _MTLCreateSystemDefaultDevice() {

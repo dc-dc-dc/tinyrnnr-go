@@ -10,4 +10,11 @@ run-opencl:
 	go run ./cmd/efficientnet/main.go
 
 opencl:
-	clang -framework OpenCL extra/opencl.c -o extra/opencl && ./extra/opencl
+	@if [ "OS" = "Darwin" ]; then\
+		clang -framework OpenCL extra/opencl.c -o extra/opencl && ./extra/opencl;\
+	fi
+	@echo $(OS)
+	@if [ "$(OS)" = "Windows_NT" ]; then\
+		clang -I"${CUDA_PATH}/include" -l"${CUDA_PATH}/lib/x64/OpenCL.lib" extra/opencl.c -o extra/opencl.exe; \
+		./extra/opencl.exe;\
+	fi

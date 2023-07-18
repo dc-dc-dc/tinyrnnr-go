@@ -1,5 +1,6 @@
 net*
 extra/opencl
+extra/opencl.exe
 venv/
 imagenet-simple-labels.json
 Norwegian_hen.jpg
