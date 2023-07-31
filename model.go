@@ -21,8 +21,8 @@ type BufferMetadata struct {
 
 type ModelMetadata struct {
 	Backend    string                    `json:"backend"`
-	InputSize  BufferMetadata            `json:"input_size"`
-	OutputSize BufferMetadata            `json:"output_size"`
+	InputSize  BufferMetadata            `json:"input"`
+	OutputSize BufferMetadata            `json:"output"`
 	Functions  map[string]string         `json:"functions"`
 	Statements []Statement               `json:"statements"`
 	Buffers    map[string]BufferMetadata `json:"buffers"`
