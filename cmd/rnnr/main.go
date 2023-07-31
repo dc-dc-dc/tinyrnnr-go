@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -11,6 +12,16 @@ import (
 
 	tinyrnnrgo "github.com/dc-dc-dc/tinyrnnr-go"
 )
+
+var (
+	modelFile  *string
+	tensorFile *string
+)
+
+func init() {
+	modelFile = flag.String("model", "net.json", "tinygrad model file")
+	tensorFile = flag.String("tensor", "net.safetensors", "tinygrad safetensors file")
+}
 
 func convertToFloatArray(arr []uint8) []float32 {
 	res := make([]float32, len(arr))
@@ -35,10 +46,14 @@ func prepareImage(size uint64, src image.Image) []float32 {
 			i += 1
 		}
 	}
+	fmt.Printf("len: %f %f %f %f\n", input[0], input[1], input[2], input[3])
 	return input
 }
 
 func main() {
+	flag.Parse()
+	fmt.Printf("running model: %s tensors: %s\n", *modelFile, *tensorFile)
+
 	labels := []string{}
 	fd, err := os.Open("imagenet-simple-labels.json")
 	if err != nil {
@@ -49,11 +64,11 @@ func main() {
 		panic(err)
 	}
 
-	model, err := tinyrnnrgo.NewModelFromFile("net-opencl.json")
+	model, err := tinyrnnrgo.NewModelFromFile(*modelFile)
 	if err != nil {
 		panic(err)
 	}
-	tensor, err := tinyrnnrgo.NewSafeTensorFromFile("net.safetensors")
+	tensor, err := tinyrnnrgo.NewSafeTensorFromFile(*tensorFile)
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +77,7 @@ func main() {
 	}
 
 	// load test image
-	img, err := os.Open("Norwegian_hen.jpg")
+	img, err := os.Open("hen.jpg")
 	if err != nil {
 		panic(err)
 	}
@@ -73,14 +88,24 @@ func main() {
 		panic(err)
 	}
 
-	input := prepareImage(model.GetInputSize(), src)
+	input := prepareImage(model.GetInputSize()/4, src)
+	tfd, err := os.Create("temp")
+	if err != nil {
+		panic(err)
+	}
+	defer tfd.Close()
+	for i := range input {
+		fmt.Fprintf(tfd, "%f,", input[i])
+	}
 	out, err := model.Run(input)
 	if err != nil {
 		panic(err)
 	}
 	var index int
+	fmt.Printf("len: %f %f %f\n", out[0], out[1], out[2])
 	for i := range out {
-		if out[i] > out[index] {
+		if out[i] > out[index] && out[i] != 0 {
+			// fmt.Printf("new max %d %s %.5f\n", i, labels[i], out[i])
 			index = i
 		}
 	}

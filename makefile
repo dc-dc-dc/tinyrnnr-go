@@ -7,7 +7,7 @@ run-safe:
 	go run ./cmd/safetensors/main.go
 
 run-opencl:
-	go run ./cmd/efficientnet/main.go
+	go run ./cmd/rnnr/main.go
 
 opencl:
 	@if [ "OS" = "Darwin" ]; then\

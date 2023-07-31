@@ -133,7 +133,7 @@ func (m *Model) Run(input []float32) ([]float32, error) {
 			return nil, res
 		}
 	}
-	out := make([]float32, m.metadata.OutputSize.Size)
+	out := make([]float32, m.metadata.OutputSize.Size/4)
 	if err := m.backend.ReadBuffer(m.buffers["outputs"], out); err != nil {
 		return nil, err
 	}
